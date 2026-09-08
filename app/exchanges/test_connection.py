@@ -1,14 +1,17 @@
 import ccxt
+import time
 from app.arbitrage.engine import find_best_arbitrage
 
 # =========================
-# FEES
+# CONFIGURATION
 # =========================
 
 BINANCE_TAKER_FEE = 0.0010   
 KRAKEN_TAKER_FEE = 0.0080    
-MIN_NET_RETURN = 0.10
+MIN_NET_RETURN = 0.0
 SLIPPAGE = 0.0010
+SCAN_INTERVAL = 1
+CAPITAL = 100
 
 # =========================
 # EXCHANGES
@@ -21,99 +24,112 @@ symbol = "BTC/USDT"
 
 
 # =========================
-# ORDERBOOKS
+# CONTINUOUS SCANNER
 # =========================
 
-binance_orderbook = binance.fetch_order_book(symbol)
-kraken_orderbook = kraken.fetch_order_book(symbol)
+print("Starting arbitrage scanner...")
+print(f"Symbol: {symbol}")
+print(f"Capital: {CAPITAL} USDT")
+print(f"Minimum return: {MIN_NET_RETURN}%")
+print()
+
+while True:
+
+    try:
+
+        # =========================
+        # GET FRESH ORDER BOOKS
+        # =========================
+
+        binance_orderbook = binance.fetch_order_book(symbol)
+        kraken_orderbook = kraken.fetch_order_book(symbol)
 
 
-# =========================
-# ARBITRAGE
-# =========================
+        # =========================
+        # CALCULATE ARBITRAGE
+        # =========================
 
-capital = 100
+        result = find_best_arbitrage(
+            exchange_a="Binance",
+            exchange_b="Kraken",
+            orderbook_a=binance_orderbook,
+            orderbook_b=kraken_orderbook,
+            capital=CAPITAL,
+            fee_a=BINANCE_TAKER_FEE,
+            fee_b=KRAKEN_TAKER_FEE,
+            min_net_return=MIN_NET_RETURN,
+            slippage=SLIPPAGE
+        )
 
-result = find_best_arbitrage(
-    exchange_a="Binance",
-    exchange_b="Kraken",
 
-    orderbook_a=binance_orderbook,
-    orderbook_b=kraken_orderbook,
+        # =========================
+        # ONLY PRINT OPPORTUNITIES
+        # =========================
 
-    capital=capital,
+        if result is not None:
 
-    fee_a=BINANCE_TAKER_FEE,
-    fee_b=KRAKEN_TAKER_FEE,
-    
-    min_net_return=MIN_NET_RETURN,
-    slippage=SLIPPAGE
-)
+            best = result["best"]
 
-# =========================
-# PRINT RESULT
-# =========================
+            if best["net_return"] >= MIN_NET_RETURN:
 
-if result is None:
+                print()
+                print("=" * 60)
+                print("🚨 ARBITRAGE OPPORTUNITY")
+                print("=" * 60)
 
-    print("Couldn't calculate arbitrage.")
+                print(
+                    f"BUY:        {best['buy_exchange']}"
+                )
 
-else:
+                print(
+                    f"SELL:       {best['sell_exchange']}"
+                )
 
-    print()
-    print("===== ARBITRAGE SCAN =====")
+                print(
+                    f"Capital:    {best['capital']:.2f} USDT"
+                )
 
-    for opportunity in result["all"]:
+                print(
+                    f"BTC:        {best['btc_bought']:.8f}"
+                )
+
+                print(
+                    f"Buy VWAP:   {best['buy_vwap']:.2f}"
+                )
+
+                print(
+                    f"Sell VWAP:  {best['sell_vwap']:.2f}"
+                )
+
+                print(
+                    f"Net profit: +{best['net_profit']:.4f} USDT"
+                )
+
+                print(
+                    f"Net return: +{best['net_return']:.4f}%"
+                )
+
+                print("=" * 60)
+
+
+        # =========================
+        # WAIT
+        # =========================
+
+        time.sleep(SCAN_INTERVAL)
+
+
+    except KeyboardInterrupt:
 
         print()
-        print(
-            opportunity["buy_exchange"],
-            "→",
-            opportunity["sell_exchange"]
-        )
+        print("Scanner stopped.")
 
-        print(
-            "Net return:",
-            opportunity["net_return"],
-            "%"
-        )
+        break
 
-        print(
-            "Net profit:",
-            opportunity["net_profit"],
-            "USDT"
-        )
 
-    print()
-    print("===== BEST OPPORTUNITY =====")
+    except Exception as e:
 
-    best = result["best"]
-
-    print(
-        "Buy:",
-        best["buy_exchange"]
-    )
-
-    print(
-        "Sell:",
-        best["sell_exchange"]
-    )
-
-    print(
-        "Net return:",
-        best["net_return"],
-        "%"
-    )
-
-    print(
-        "Minimum required:",
-        MIN_NET_RETURN,
-        "%"
-    )
-
-    print()
-
-    if best["profitable"]:
-        print("STATUS: PROFITABLE")
-    else:
-        print("STATUS: NO TRADE")
+        print()
+        print("Error:", e)
+        print("Retrying...")
+        time.sleep(SCAN_INTERVAL)

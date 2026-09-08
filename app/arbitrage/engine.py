@@ -34,25 +34,25 @@ def calculate_arbitrage(
     # SELL
     sell_result = sell_btc(
         sell_orderbook["bids"],
-        btc_bought,
+        btc_bought_after_slippage,
         sell_fee
     )
 
     if sell_result is None:
         return None
 
-    net_revenue, sell_vwap, gross_revenue, sell_fee_amount = sell_result
+    _, sell_vwap, _, _ = sell_result
     
     sell_effective_price = apply_slippage(sell_vwap, slippage, "sell")
     
+    #Revenue before sell fee
+    gross_revenue = btc_bought_after_slippage*sell_effective_price
     
-    # SLIPPAGE-ADJUSTED RESULT
-    slippage_adjusted_revenue = btc_bought * sell_effective_price
-    slippage_adjusted_fee = slippage_adjusted_revenue * sell_fee
-    net_revenue = slippage_adjusted_revenue - slippage_adjusted_fee
+    # Sell fee
+    sell_fee_amount = gross_revenue* sell_fee
     
-
-
+    net_revenue = gross_revenue - sell_fee_amount
+    
     # PROFIT
     net_profit = net_revenue - capital
     net_return = (net_profit / capital) * 100
@@ -60,8 +60,9 @@ def calculate_arbitrage(
     return {
         "buy_exchange": buy_exchange,
         "sell_exchange": sell_exchange,
-        
+
         "capital": capital,
+
         "btc_bought": btc_bought_after_slippage,
 
         "buy_vwap": buy_vwap,
@@ -71,11 +72,11 @@ def calculate_arbitrage(
 
         "sell_vwap": sell_vwap,
         "sell_effective_price": sell_effective_price,
-        "gross_revenue": slippage_adjusted_revenue,
+        "gross_revenue": gross_revenue,
         "sell_fee": sell_fee_amount,
-        
+
         "net_revenue": net_revenue,
-        
+
         "net_profit": net_profit,
         "net_return": net_return
     }
