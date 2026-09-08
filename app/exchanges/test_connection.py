@@ -1,66 +1,119 @@
 import ccxt
-from app.market_data.order_book import calculate_vwap, buy_with_budget
+from app.arbitrage.engine import find_best_arbitrage
 
+# =========================
+# FEES
+# =========================
 
-#GET TOP BIDS/ASKS
+BINANCE_TAKER_FEE = 0.0010   
+KRAKEN_TAKER_FEE = 0.0080    
+MIN_NET_RETURN = 0.10
+SLIPPAGE = 0.0010
+
+# =========================
+# EXCHANGES
+# =========================
+
 binance = ccxt.binance()
 kraken = ccxt.kraken()
 
 symbol = "BTC/USDT"
 
+
+# =========================
+# ORDERBOOKS
+# =========================
+
 binance_orderbook = binance.fetch_order_book(symbol)
 kraken_orderbook = kraken.fetch_order_book(symbol)
 
-binance_bid = binance_orderbook["bids"][0][0]
-binance_ask = binance_orderbook["asks"][0][0]
 
-kraken_bid = kraken_orderbook["bids"][0][0]
-kraken_ask = kraken_orderbook["asks"][0][0]
+# =========================
+# ARBITRAGE
+# =========================
 
-print("BINANCE")
-print("Best bid:", binance_orderbook["bids"][0])
-print("Best ask:", binance_orderbook["asks"][0])
-
-print()
-
-print("KRAKEN")
-print("Best bid:", kraken_orderbook["bids"][0])
-print("Best ask:", kraken_orderbook["asks"][0])
-
-
-
-#AMOUNT OF BTC WE CAN BUY
-target_amount = 0.01
-
-binance_buy_vwap = calculate_vwap(
-    binance_orderbook["asks"],
-    target_amount
-)
-
-kraken_sell_vwap = calculate_vwap(
-    kraken_orderbook["bids"],
-    target_amount
-)
-
-print()
-print("VWAP FOR", target_amount, "BTC")
-
-print("Binance buy VWAP:", binance_buy_vwap)
-print("Kraken sell VWAP:", kraken_sell_vwap)
-
-
-#USD DISPONIBLE TO GET BTC
 capital = 100
 
-buy_result = buy_with_budget(
-    binance_orderbook["asks"],
-    capital
+result = find_best_arbitrage(
+    exchange_a="Binance",
+    exchange_b="Kraken",
+
+    orderbook_a=binance_orderbook,
+    orderbook_b=kraken_orderbook,
+
+    capital=capital,
+
+    fee_a=BINANCE_TAKER_FEE,
+    fee_b=KRAKEN_TAKER_FEE,
+    
+    min_net_return=MIN_NET_RETURN,
+    slippage=SLIPPAGE
 )
 
-btc_bought, buy_vwap = buy_result
+# =========================
+# PRINT RESULT
+# =========================
 
-print()
-print("BUY ON BINANCE")
-print("Capital:", capital, "USDT")
-print("BTC bought:", btc_bought)
-print("VWAP:", buy_vwap)
+if result is None:
+
+    print("Couldn't calculate arbitrage.")
+
+else:
+
+    print()
+    print("===== ARBITRAGE SCAN =====")
+
+    for opportunity in result["all"]:
+
+        print()
+        print(
+            opportunity["buy_exchange"],
+            "→",
+            opportunity["sell_exchange"]
+        )
+
+        print(
+            "Net return:",
+            opportunity["net_return"],
+            "%"
+        )
+
+        print(
+            "Net profit:",
+            opportunity["net_profit"],
+            "USDT"
+        )
+
+    print()
+    print("===== BEST OPPORTUNITY =====")
+
+    best = result["best"]
+
+    print(
+        "Buy:",
+        best["buy_exchange"]
+    )
+
+    print(
+        "Sell:",
+        best["sell_exchange"]
+    )
+
+    print(
+        "Net return:",
+        best["net_return"],
+        "%"
+    )
+
+    print(
+        "Minimum required:",
+        MIN_NET_RETURN,
+        "%"
+    )
+
+    print()
+
+    if best["profitable"]:
+        print("STATUS: PROFITABLE")
+    else:
+        print("STATUS: NO TRADE")
