@@ -2,6 +2,7 @@ from app.market_data.order_book import buy_with_budget, sell_assets, apply_slipp
 
 
 def calculate_arbitrage(
+    symbol,
     buy_exchange,
     sell_exchange,
     buy_orderbook,
@@ -58,6 +59,8 @@ def calculate_arbitrage(
     net_return = (net_profit / capital) * 100
 
     return {
+        "symbol": symbol,
+        
         "buy_exchange": buy_exchange,
         "sell_exchange": sell_exchange,
 
@@ -83,6 +86,7 @@ def calculate_arbitrage(
     
     
 def find_best_arbitrage(
+    symbol,
     exchange_a,
     exchange_b,
     orderbook_a,
@@ -100,6 +104,7 @@ def find_best_arbitrage(
     # Direction 1:
     # A → B
     opportunity_ab = calculate_arbitrage(
+        symbol=symbol,
         buy_exchange=exchange_a,
         sell_exchange=exchange_b,
         buy_orderbook=orderbook_a,
@@ -113,6 +118,7 @@ def find_best_arbitrage(
     # Direction 2:
     # B → A
     opportunity_ba = calculate_arbitrage(
+        symbol=symbol,
         buy_exchange=exchange_b,
         sell_exchange=exchange_a,
         buy_orderbook=orderbook_b,

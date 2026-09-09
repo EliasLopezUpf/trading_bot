@@ -8,6 +8,9 @@ class MarketDataCollector:
         order_books = {}
 
         for name, exchange in self.exchanges.items():
+            
+            if not exchange.supports_symbol(symbol):
+                continue
 
             order_books[name] = exchange.get_order_book(symbol)
 

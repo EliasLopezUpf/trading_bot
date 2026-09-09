@@ -10,7 +10,7 @@ class PaperTrader:
             "buy_exchange": opportunity["buy_exchange"],
             "sell_exchange": opportunity["sell_exchange"],
             "capital": opportunity["capital"],
-            "assets_amount": opportunity["assets_amount"],
+            "assets_amount": opportunity["assets_bought"],
             "buy_price": opportunity["buy_effective_price"],
             "sell_price": opportunity["sell_effective_price"],
             "profit": opportunity["net_profit"],

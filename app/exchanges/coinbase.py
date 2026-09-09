@@ -1,10 +1,10 @@
 import ccxt
 from app.exchanges.base import Exchange
 
-class BybitExchange(Exchange):
+class CoinbaseExchange(Exchange):
 
     def __init__(self):
-        self.exchange = ccxt.bybit()
+        self.exchange = ccxt.coinbase()
         self.exchange.load_markets()
 
     def get_order_book(self, symbol):
