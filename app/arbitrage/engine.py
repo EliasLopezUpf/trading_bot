@@ -1,4 +1,4 @@
-from app.market_data.order_book import buy_with_budget, sell_btc, apply_slippage
+from app.market_data.order_book import buy_with_budget, sell_assets, apply_slippage
 
 
 def calculate_arbitrage(
@@ -25,16 +25,16 @@ def calculate_arbitrage(
     if buy_result is None:
         return None
 
-    btc_bought, buy_vwap, buy_cost, buy_fee_amount = buy_result
+    assets_bought, buy_vwap, buy_cost, buy_fee_amount = buy_result
     
     buy_effective_price = apply_slippage(buy_vwap, slippage, "buy")
     
-    btc_bought_after_slippage = (buy_cost / buy_effective_price)
+    assets_bought_after_slippage = (buy_cost / buy_effective_price)
     
     # SELL
-    sell_result = sell_btc(
+    sell_result = sell_assets(
         sell_orderbook["bids"],
-        btc_bought_after_slippage,
+        assets_bought_after_slippage,
         sell_fee
     )
 
@@ -46,7 +46,7 @@ def calculate_arbitrage(
     sell_effective_price = apply_slippage(sell_vwap, slippage, "sell")
     
     #Revenue before sell fee
-    gross_revenue = btc_bought_after_slippage*sell_effective_price
+    gross_revenue = assets_bought_after_slippage*sell_effective_price
     
     # Sell fee
     sell_fee_amount = gross_revenue* sell_fee
@@ -63,7 +63,7 @@ def calculate_arbitrage(
 
         "capital": capital,
 
-        "btc_bought": btc_bought_after_slippage,
+        "assets_bought": assets_bought_after_slippage,
 
         "buy_vwap": buy_vwap,
         "buy_effective_price": buy_effective_price,

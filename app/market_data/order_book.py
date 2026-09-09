@@ -24,7 +24,7 @@ def buy_with_budget(asks, budget, fee_rate=0):
     available_budget = budget / (1 + fee_rate)
     
     remaining_budget = available_budget
-    total_btc = 0
+    total_assets = 0
     total_cost = 0
 
     for order in asks:
@@ -34,56 +34,56 @@ def buy_with_budget(asks, budget, fee_rate=0):
         cost_of_order = price * amount
 
         if cost_of_order <= remaining_budget:
-            btc_bought = amount
+            assets_bought = amount
             cost = cost_of_order
 
         else:
-            btc_bought = remaining_budget / price
+            assets_bought = remaining_budget / price
             cost = remaining_budget
 
-        total_btc += btc_bought
+        total_assets += assets_bought
         total_cost += cost
         remaining_budget -= cost
 
         if remaining_budget <= 0:
             break
 
-    if total_btc == 0:
+    if total_assets == 0:
         return None
     
     # Check if the order book had enough liquidity
     if remaining_budget > 0:
         return None
 
-    vwap = total_cost / total_btc
+    vwap = total_cost / total_assets
     fee = total_cost * fee_rate
 
-    return total_btc, vwap, total_cost, fee
+    return total_assets, vwap, total_cost, fee
 
 
-def sell_btc(bids, btc_amount, fee_rate=0):
-    remaining_btc = btc_amount
+def sell_assets(bids, assets_amount, fee_rate=0):
+    remaining_assets = assets_amount
     total_usdt = 0
 
     for order in bids:
         price = order[0]
         amount = order[1]
 
-        btc_to_sell = min(amount, remaining_btc)
+        assets_to_sell = min(amount, remaining_assets)
 
-        total_usdt += btc_to_sell * price
-        remaining_btc -= btc_to_sell
+        total_usdt += assets_to_sell * price
+        remaining_assets -= assets_to_sell
 
-        if remaining_btc <= 0:
+        if remaining_assets <= 0:
             break
 
-    if remaining_btc > 0:
+    if remaining_assets > 0:
         return None
     
     fee = total_usdt * fee_rate
     net_usdt = total_usdt - fee
 
-    vwap = total_usdt / btc_amount
+    vwap = total_usdt / assets_amount
 
     return net_usdt, vwap, total_usdt, fee
 
