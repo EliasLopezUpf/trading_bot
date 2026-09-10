@@ -10,3 +10,7 @@ class Exchange(ABC):
     @abstractmethod
     def supports_symbol(self, symbol):
         pass
+    
+    @abstractmethod
+    async def stream_order_book(self, symbol):
+        pass

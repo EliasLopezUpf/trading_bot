@@ -1,3 +1,64 @@
+class LocalOrderBook:
+
+    def __init__(self):
+        self.bids = {}
+        self.asks = {}
+
+    def load_snapshot(self, snapshot):
+        self.bids = {
+            float(price): float(amount)
+            for price, amount in snapshot["bids"]
+        }
+
+        self.asks = {
+            float(price): float(amount)
+            for price, amount in snapshot["asks"]
+        }
+
+    def apply_update(self, bids, asks):
+        
+        for price, amount in bids:
+            
+            price = float(price)
+            amount = float(amount)
+            
+            if amount == 0:
+                self.bids.pop(price, None)
+            else:
+                self.bids[price] = amount
+
+        for price, amount in asks:
+            
+            price = float(price)
+            amount = float(amount)
+            
+            if amount == 0:
+                self.asks.pop(price, None)
+            else:
+                self.asks[price] = amount
+
+    def get_order_book(self):
+
+        bids = sorted(
+            self.bids.items(),
+            reverse=True
+        )
+
+        asks = sorted(
+            self.asks.items()
+        )
+
+        return {
+            "bids": [
+                [price, amount]
+                for price, amount in bids
+            ],
+            "asks": [
+                [price, amount]
+                for price, amount in asks
+            ]
+        }
+
 def calculate_vwap(orders, target_amount):
     remaining = target_amount
     total_cost = 0
