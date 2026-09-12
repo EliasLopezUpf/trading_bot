@@ -14,3 +14,15 @@ class Exchange(ABC):
     @abstractmethod
     async def stream_order_book(self, symbol):
         pass
+    
+    @abstractmethod
+    async def initialize_order_book(self,symbol,queue,local_book):
+        pass
+    
+    @abstractmethod
+    def process_order_book_update(self,update,local_book):
+        pass
+    
+    @abstractmethod
+    def uses_sequence_numbers(self):
+        pass

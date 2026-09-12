@@ -163,9 +163,18 @@ async def main():
                 kraken_data["asks"][0]
             )
         
-    monitor_task = asyncio.create_task(
-    monitor_books()
-)
+    monitor_task = asyncio.create_task(monitor_books())
+    
+    try:
+        await asyncio.gather(binance_processor,kraken_processor,monitor_task)
+
+    finally:
+        tasks = [binance_ws_task,kraken_ws_task,binance_processor,kraken_processor,monitor_task]
+
+        for task in tasks:
+            task.cancel()
+
+        await asyncio.gather(*tasks,return_exceptions=True)
         
 if __name__ == "__main__":
     try:

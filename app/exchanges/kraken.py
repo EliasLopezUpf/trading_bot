@@ -78,3 +78,40 @@ class KrakenExchange(Exchange):
                 for level in book_data["asks"]
             ]
         }
+        
+        
+    async def initialize_order_book(self,symbol,queue,local_book):
+
+        while True:
+
+            update = await queue.get()
+
+            if update["type"] != "snapshot":
+                continue
+
+            snapshot = self.parse_order_book_snapshot(
+                update
+            )
+
+            local_book.load_snapshot(snapshot)
+
+            return None
+        
+    def process_order_book_update(self,update,local_book,last_update_id=None):
+
+        if update["type"] != "update":
+            return "ignore", None
+
+        bids, asks = self.parse_order_book_update(
+            update
+        )
+
+        local_book.apply_update(
+            bids,
+            asks
+        )
+        
+        return "ok", None
+    
+    def uses_sequence_numbers(self):
+        return False
