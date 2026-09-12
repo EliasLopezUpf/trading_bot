@@ -12,7 +12,7 @@ class Exchange(ABC):
         pass
     
     @abstractmethod
-    async def stream_order_book(self, symbol):
+    async def stream_order_books(self, symbols):
         pass
     
     @abstractmethod
@@ -25,4 +25,8 @@ class Exchange(ABC):
     
     @abstractmethod
     def uses_sequence_numbers(self):
+        pass
+    
+    @abstractmethod
+    def get_symbol_from_update(self, update):
         pass

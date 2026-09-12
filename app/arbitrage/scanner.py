@@ -21,22 +21,7 @@ class ArbitrageScanner:
 
     def scan_symbol(self, symbol):
 
-        available_exchanges = []
-
-        for exchange_name in self.fees:
-
-            try:
-                self.market_data.get_order_book(
-                    exchange_name,
-                    symbol
-                )
-
-                available_exchanges.append(
-                    exchange_name
-                )
-
-            except KeyError:
-                continue
+        available_exchanges = (self.market_data.get_available_exchanges(symbol))
 
         exchange_pairs = combinations(
             available_exchanges,

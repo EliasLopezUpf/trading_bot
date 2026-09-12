@@ -145,6 +145,10 @@ def find_best_arbitrage(
     )
     
     best_opportunity["profitable"] = (
+        best_opportunity["net_return"] >= 0
+    )
+    
+    best_opportunity["actionable"] = (
         best_opportunity["net_return"] >= min_net_return
     )
 

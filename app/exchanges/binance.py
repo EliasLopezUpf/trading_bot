@@ -10,7 +10,7 @@ from app.market_data.synchronization import synchronize_order_book, is_next_upda
 class BinanceExchange(Exchange):
 
     def __init__(self):
-        self.exchange = ccxt.binance()
+        self.exchange = ccxt.binance({"timeout": 30000})
         self.exchange.load_markets()
 
     def get_order_book(self, symbol):
@@ -22,10 +22,17 @@ class BinanceExchange(Exchange):
     def supports_symbol(self, symbol):
         return symbol in self.exchange.markets
     
-    async def stream_order_book(self, symbol):
-        symbol = symbol.lower().replace("/", "")
+    async def stream_order_books(self, symbols):
 
-        url = f"wss://stream.binance.com:9443/ws/{symbol}@depth"
+        streams = "/".join(
+            f"{symbol.replace('/', '').lower()}@depth@100ms"
+            for symbol in symbols
+        )
+
+        url = (
+            "wss://stream.binance.com:9443/stream"
+            f"?streams={streams}"
+        )
 
         async with websockets.connect(url) as websocket:
 
@@ -34,7 +41,7 @@ class BinanceExchange(Exchange):
 
                 data = json.loads(message)
 
-                yield data
+                yield data["data"]
     
     
     async def initialize_order_book(self,symbol,queue,local_book):
@@ -68,3 +75,9 @@ class BinanceExchange(Exchange):
     
     def uses_sequence_numbers(self):
         return True
+    
+    def get_symbol_from_update(self, update):
+
+        raw_symbol = update["s"]
+
+        return raw_symbol[:-4] + "/" + raw_symbol[-4:]

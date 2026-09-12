@@ -7,7 +7,9 @@ import websockets
 class KrakenExchange(Exchange):
 
     def __init__(self):
-        self.exchange = ccxt.kraken()
+        self.exchange = ccxt.kraken({
+        "timeout": 30000
+    })
         self.exchange.load_markets()
 
     def get_order_book(self, symbol):
@@ -16,9 +18,7 @@ class KrakenExchange(Exchange):
     def supports_symbol(self, symbol):
         return symbol in self.exchange.markets
     
-    async def stream_order_book(self, symbol):
-
-        pair = symbol.replace("/", "/")
+    async def stream_order_books(self, symbols):
 
         url = "wss://ws.kraken.com/v2"
 
@@ -28,7 +28,7 @@ class KrakenExchange(Exchange):
                 "method": "subscribe",
                 "params": {
                     "channel": "book",
-                    "symbol": [pair],
+                    "symbol": symbols,
                     "depth": 10
                 }
             }
@@ -42,9 +42,6 @@ class KrakenExchange(Exchange):
                 message = await websocket.recv()
 
                 data = json.loads(message)
-                
-                if data.get("channel") != "book":
-                    continue
 
                 yield data
                 
@@ -85,8 +82,11 @@ class KrakenExchange(Exchange):
         while True:
 
             update = await queue.get()
+             
+            if update.get("channel") != "book":
+                continue
 
-            if update["type"] != "snapshot":
+            if update.get("type") != "snapshot":
                 continue
 
             snapshot = self.parse_order_book_snapshot(
@@ -99,8 +99,8 @@ class KrakenExchange(Exchange):
         
     def process_order_book_update(self,update,local_book,last_update_id=None):
 
-        if update["type"] != "update":
-            return "ignore", None
+        if update.get("type") != "update":
+            return "old", None
 
         bids, asks = self.parse_order_book_update(
             update
@@ -115,3 +115,13 @@ class KrakenExchange(Exchange):
     
     def uses_sequence_numbers(self):
         return False
+    
+    def get_symbol_from_update(self, update):
+
+        if update.get("channel") != "book":
+            return None
+
+        if not update.get("data"):
+            return None
+
+        return update["data"][0]["symbol"]
