@@ -9,6 +9,7 @@ from app.exchanges.bybit import BybitExchange
 from app.market_data.manager import MarketDataManager
 from app.arbitrage.scanner import ArbitrageScanner
 
+from app.execution.paper_trader import PaperTrader
 
 # =========================
 # CONFIGURATION
@@ -59,7 +60,9 @@ FEES = {
 
 SLIPPAGE = 0.001
 
-MIN_NET_RETURN = -0.3
+MIN_NET_RETURN = -0.50
+
+PAPER_TRADING = True
 
 
 async def main():
@@ -121,6 +124,18 @@ async def main():
                     min_net_return=MIN_NET_RETURN
                 )
     
+    paper_trader = PaperTrader(
+        initial_usdt=5000,
+        initial_assets=1
+    )
+
+    for exchange in exchanges:
+        paper_trader.add_exchange(exchange)
+        
+    initial_portfolio_value = (
+        paper_trader.get_total_usdt()
+    )
+    
     # =========================
     # STRATEGY LOOP
     # =========================
@@ -164,12 +179,108 @@ async def main():
             print(f"Net profit:   {best['net_profit']:.4f} USDT")
             print(f"Net return:   {best['net_return']:.4f}%")
             print(f"Profitable:   "f"{best['profitable']}")
+            print(f"Actionable:   {best['actionable']}")
 
             print("=" * 60)
+            
+            # =========================
+            # PAPER TRADING
+            # =========================
+
+            if PAPER_TRADING and best["actionable"]:
+
+                executed = paper_trader.execute_trade(best)
+
+                if executed:
+                    print()
+                    print(">>> PAPER TRADE EXECUTED <<<")
+                    print(
+                        f"{best['buy_exchange']} -> "
+                        f"{best['sell_exchange']} | "
+                        f"{best['symbol']}"
+                    )
+
+                    print(
+                        f"Paper profit: "
+                        f"{best['net_profit']:.4f} USDT"
+                    )
+
+                else:
+                    print()
+                    print(">>> PAPER TRADE REJECTED <<<")
+                    print("Insufficient paper balance.")
 
     finally:
-
+        
+        # =========================
+        # PAPER TRADING SUMMARY
+        # =========================
         await manager.stop()
+
+        if PAPER_TRADING:
+
+            summary = paper_trader.get_portfolio_summary()
+
+            final_portfolio_value = (
+                paper_trader.get_portfolio_value(manager)
+            )
+
+            portfolio_pnl = (
+                final_portfolio_value - initial_portfolio_value
+            )
+
+            portfolio_return = (
+                portfolio_pnl / initial_portfolio_value
+            ) * 100
+
+            print()
+            print("=" * 60)
+            print("PAPER TRADING SUMMARY")
+            print("=" * 60)
+
+            print(
+                f"Initial portfolio:    "
+                f"{initial_portfolio_value:.2f} USDT"
+            )
+
+            print(
+                f"Final portfolio:      "
+                f"{final_portfolio_value:.2f} USDT"
+            )
+
+            print(
+                f"Portfolio P&L:        "
+                f"{portfolio_pnl:.4f} USDT"
+            )
+
+            print(
+                f"Portfolio return:     "
+                f"{portfolio_return:.4f}%"
+            )
+
+            print()
+
+            print(
+                f"Remaining USDT:       "
+                f"{summary['total_usdt']:.2f}"
+            )
+
+            print(
+                f"Trades executed:      "
+                f"{summary['trade_count']}"
+            )
+
+            print(
+                f"Profitable trades:    "
+                f"{summary['profitable_trades']}"
+            )
+
+            print(
+                f"Unprofitable trades:  "
+                f"{summary['unprofitable_trades']}"
+            )
+
+        print("=" * 60)
 
 
 if __name__ == "__main__":
